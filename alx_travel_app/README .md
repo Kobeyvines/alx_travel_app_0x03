@@ -111,6 +111,6 @@ python manage.py seed
 
     ALX Backend Engineering
 
-    Implemented by [Your Name]
+    Implemented by [Brian Name]
 
 📜 License
