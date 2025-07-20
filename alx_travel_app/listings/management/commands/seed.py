@@ -1,7 +1,7 @@
 # listings/management/commands/seed.py
 
 from django.core.management.base import BaseCommand
-from alx_travel_app.alx_travel_app.listings.models import Listing
+from listings.models import Listing
 import random
 
 class Command(BaseCommand):
