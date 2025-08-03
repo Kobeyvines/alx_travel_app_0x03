@@ -1,0 +1,72 @@
+{
+  "info": {
+    "name": "Travel App API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Listings",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/listings/",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["api", "listings"]
+        }
+      }
+    },
+    {
+      "name": "Create Listing",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Beach House\",\n  \"description\": \"A nice beach house\",\n  \"location\": \"Mombasa\",\n  \"price_per_night\": 150.0\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/listings/",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["api", "listings"]
+        }
+      }
+    },
+    {
+      "name": "List Bookings",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/bookings/",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["api", "bookings"]
+        }
+      }
+    },
+    {
+      "name": "Create Booking",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"listing\": 1,\n  \"guest_name\": \"John Doe\",\n  \"check_in\": \"2025-08-05\",\n  \"check_out\": \"2025-08-07\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8000/api/bookings/",
+          "protocol": "http",
+          "host": ["127.0.0.1"],
+          "port": "8000",
+          "path": ["api", "bookings"]
+        }
+      }
+    }
+  ]
+}
