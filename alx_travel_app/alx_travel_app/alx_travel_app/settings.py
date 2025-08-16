@@ -1,5 +1,7 @@
 import environ
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Initialize environment variables
 env = environ.Env(
@@ -147,3 +149,15 @@ STATICFILES_DIRS = [
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+#chapa api stuff
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+CHAPA_SECRET_KEY = os.getenv("CHAPA_SECRET_KEY")
+CHAPA_RETURN_URL = os.getenv("CHAPA_RETURN_URL")
+CHAPA_CALLBACK_URL = os.getenv("CHAPA_CALLBACK_URL")
+
+#celery
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://127.0.0.1:6379/0") # or your broker
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"  # logs emails to console in dev
