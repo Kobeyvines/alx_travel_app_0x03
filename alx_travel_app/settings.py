@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'django_celery_results',
-    'listings.apps.ListingsConfig',
+    'alx_travel_app.listings.apps.ListingsConfig',
 ]
 
 MIDDLEWARE = [
