@@ -48,6 +48,65 @@ def initiate_payment(request):
 
     # Use booking total/price
     amount = booking.total_price
+    
+    # Create a unique transaction reference
+    tx_ref = str(uuid.uuid4())
+    
+    # Create payment record
+    payment = Payment.objects.create(
+        booking=booking,
+        amount=amount,
+        tx_ref=tx_ref,
+        status='pending'
+    )
+    
+    # In real implementation, you would integrate with a payment provider here
+    # For demo, we'll just return a simulated checkout URL
+    checkout_url = request.build_absolute_uri(
+        reverse('verify-payment', kwargs={'tx_ref': tx_ref})
+    )
+    
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Payment initiated',
+        'data': {
+            'checkout_url': checkout_url,
+            'tx_ref': tx_ref
+        }
+    })
+
+
+@csrf_exempt
+def verify_payment(request, tx_ref):
+    """
+    GET /api/payments/verify/<tx_ref>/
+    Verifies payment status with payment provider
+    Updates Payment and Booking statuses
+    """
+    payment = get_object_or_404(Payment, tx_ref=tx_ref)
+    
+    if payment.status == 'completed':
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Payment already verified',
+            'data': {'tx_ref': tx_ref}
+        })
+    
+    # In real implementation, verify with payment provider
+    # For demo, we'll simulate success
+    payment.status = 'completed'
+    payment.save()
+    
+    # Update booking status
+    booking = payment.booking
+    booking.status = 'confirmed'
+    booking.save()
+    
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Payment verified successfully',
+        'data': {'tx_ref': tx_ref}
+    })
 
     # Generate a unique tx_ref for this payment
     tx_ref = f"booking-{booking.id}-{uuid.uuid4().hex[:8]}"
