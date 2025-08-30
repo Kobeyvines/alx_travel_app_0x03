@@ -1,8 +1,8 @@
 import os
-from alx_travel_app.alx_travel_app.alx_travel_app.celery import Celery
+from celery import Celery
 
 # Set the default Django settings module
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alx_travel_app.alx_travel_app.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alx_travel_app.settings')
 
 # Create the Celery app
 app = Celery('alx_travel_app')
