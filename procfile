@@ -1,0 +1,2 @@
+web: gunicorn alx_backend_security.wsgi:application --log-file -
+worker: celery -A alx_backend_security worker --loglevel=info
