@@ -1,7 +1,10 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from alx_travel_app.listings.views import ListingViewSet, BookingViewSet, initiate_payment, verify_payment
+from alx_travel_app.listings.views import (
+    ListingViewSet, BookingViewSet, PaymentViewSet, ReviewViewSet,
+    initiate_payment, verify_payment
+)
 from django.conf import settings
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -23,8 +26,10 @@ schema_view = get_schema_view(
 
 # API Router
 router = DefaultRouter()
-router.register(r'listings', ListingViewSet)
-router.register(r'bookings', BookingViewSet)
+router.register(r'listings', ListingViewSet, basename='listing')
+router.register(r'bookings', BookingViewSet, basename='booking')
+router.register(r'payments', PaymentViewSet, basename='payment')
+router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

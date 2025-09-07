@@ -4,9 +4,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from rest_framework import viewsets
-from .models import Listing, Booking, Payment
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from .models import Listing, Booking, Payment, Review
 from .tasks import send_booking_confirmation_email
-from .serializers import ListingSerializer, BookingSerializer
+from .serializers import (
+    ListingSerializer, BookingSerializer, PaymentSerializer,
+    ReviewSerializer
+)
 import uuid
 
 
@@ -14,26 +20,60 @@ class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all()
     serializer_class = ListingSerializer
 
+    @action(detail=True, methods=['get'])
+    def reviews(self, request, pk=None):
+        """Get all reviews for a specific listing"""
+        listing = self.get_object()
+        reviews = Review.objects.filter(listing=listing)
+        serializer = ReviewSerializer(reviews, many=True)
+        return Response(serializer.data)
+
 
 class BookingViewSet(viewsets.ModelViewSet):
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
+    permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        booking = serializer.save()
-        # Get user email from the booking
-        user_email = booking.user.email if booking.user else None
-        if user_email:
-            # Send confirmation email asynchronously
-            send_booking_confirmation_email.delay(booking.id, user_email)
+        booking = serializer.save(user=self.request.user)
+        if booking.user.email:
+            send_booking_confirmation_email.delay(booking.id, booking.user.email)
+
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    queryset = Review.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Review.objects.select_related('user', 'listing').all()
+
+    def list(self, request, *args, **kwargs):
+        # Filter reviews by listing_id if provided
+        listing_id = request.query_params.get('listing_id')
+        queryset = self.get_queryset()
+        if listing_id:
+            queryset = queryset.filter(listing_id=listing_id)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 @csrf_exempt
 def initiate_payment(request):
-    """
-    POST JSON: { "booking_id": 123 }
-    Creates Payment(Pending), calls Chapa initialize, saves checkout_url, returns it.
-    """
+    """Initiate a new payment for a booking"""
     if request.method != "POST":
         return HttpResponseBadRequest("POST required")
 
@@ -45,168 +85,57 @@ def initiate_payment(request):
         return HttpResponseBadRequest("Invalid payload")
 
     booking = get_object_or_404(Booking, id=booking_id)
-
-    # Use booking total/price
     amount = booking.total_price
-    
-    # Create a unique transaction reference
-    tx_ref = str(uuid.uuid4())
-    
-    # Create payment record
-    payment = Payment.objects.create(
-        booking=booking,
-        amount=amount,
-        tx_ref=tx_ref,
-        status='pending'
-    )
-    
-    # In real implementation, you would integrate with a payment provider here
-    # For demo, we'll just return a simulated checkout URL
-    checkout_url = request.build_absolute_uri(
-        reverse('verify-payment', kwargs={'tx_ref': tx_ref})
-    )
-    
-    return JsonResponse({
-        'status': 'success',
-        'message': 'Payment initiated',
-        'data': {
-            'checkout_url': checkout_url,
-            'tx_ref': tx_ref
-        }
-    })
-
-
-@csrf_exempt
-def verify_payment(request, tx_ref):
-    """
-    GET /api/payments/verify/<tx_ref>/
-    Verifies payment status with payment provider
-    Updates Payment and Booking statuses
-    """
-    payment = get_object_or_404(Payment, tx_ref=tx_ref)
-    
-    if payment.status == 'completed':
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Payment already verified',
-            'data': {'tx_ref': tx_ref}
-        })
-    
-    # In real implementation, verify with payment provider
-    # For demo, we'll simulate success
-    payment.status = 'completed'
-    payment.save()
-    
-    # Update booking status
-    booking = payment.booking
-    booking.status = 'confirmed'
-    booking.save()
-    
-    return JsonResponse({
-        'status': 'success',
-        'message': 'Payment verified successfully',
-        'data': {'tx_ref': tx_ref}
-    })
-    
-    # Create a unique transaction reference
-    tx_ref = str(uuid.uuid4())
-    
-    # Create payment record
-    payment = Payment.objects.create(
-        booking=booking,
-        amount=amount,
-        tx_ref=tx_ref,
-        status='pending'
-    )
-    
-    # In real implementation, you would integrate with a payment provider here
-    # For demo, we'll just return a simulated checkout URL
-    checkout_url = request.build_absolute_uri(
-        reverse('verify-payment', kwargs={'tx_ref': tx_ref})
-    )
-    
-    return JsonResponse({
-        'status': 'success',
-        'message': 'Payment initiated',
-        'data': {
-            'checkout_url': checkout_url,
-            'tx_ref': tx_ref
-        }
-    })
-
-
-@csrf_exempt
-def verify_payment(request, tx_ref):
-    """
-    GET /api/payments/verify/<tx_ref>/
-    Verifies payment status with payment provider
-    Updates Payment and Booking statuses
-    """
-    payment = get_object_or_404(Payment, tx_ref=tx_ref)
-    
-    if payment.status == 'completed':
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Payment already verified',
-            'data': {'tx_ref': tx_ref}
-        })
-    
-    # In real implementation, verify with payment provider
-    # For demo, we'll simulate success
-    payment.status = 'completed'
-    payment.save()
-    
-    # Update booking status
-    booking = payment.booking
-    booking.status = 'confirmed'
-    booking.save()
-    
-    return JsonResponse({
-        'status': 'success',
-        'message': 'Payment verified successfully',
-        'data': {'tx_ref': tx_ref}
-    })
-
-    # Generate a unique tx_ref for this payment
     tx_ref = f"booking-{booking.id}-{uuid.uuid4().hex[:8]}"
 
-    # Create a pending Payment record
     payment = Payment.objects.create(
         booking=booking,
-        tx_ref=tx_ref,
         amount=amount,
-        currency="ETB",
-        status=Payment.STATUS_PENDING,
+        tx_ref=tx_ref,
+        status=Payment.STATUS_PENDING
     )
 
-    return JsonResponse({"status": "success", "payment_id": payment.id})
+    checkout_url = request.build_absolute_uri(
+        reverse('verify-payment', kwargs={'tx_ref': tx_ref})
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Payment initiated',
+        'data': {
+            'checkout_url': checkout_url,
+            'tx_ref': tx_ref
+        }
+    })
 
 
 @csrf_exempt
-def verify_payment(request, tx_ref: str):
-    """
-    Verify payment status with Chapa
-    """
+def verify_payment(request, tx_ref):
+    """Verify payment status and update booking"""
     payment = get_object_or_404(Payment, tx_ref=tx_ref)
     
-    # If already verified, return the status
     if payment.status == Payment.STATUS_VERIFIED:
-        return JsonResponse({"status": "success", "message": "Payment already verified"})
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Payment already verified'
+        })
     
-    # Otherwise mark as verified
     payment.status = Payment.STATUS_VERIFIED
     payment.save()
-    
-    # Send payment confirmation email
-    if payment.booking and payment.booking.user and payment.booking.user.email:
-        send_booking_confirmation_email.delay(payment.booking.id, payment.booking.user.email)
+
+    if payment.booking:
+        payment.booking.status = Booking.STATUS_CONFIRMED
+        payment.booking.save()
+        
+        if payment.booking.user and payment.booking.user.email:
+            send_booking_confirmation_email.delay(payment.booking.id, payment.booking.user.email)
     
     return JsonResponse({
-        "status": "success",
-        "message": "Payment verified successfully",
-        "data": {
-            "amount": str(payment.amount),
-            "currency": payment.currency,
-            "status": payment.status,
+        'status': 'success',
+        'message': 'Payment verified successfully',
+        'data': {
+            'amount': str(payment.amount),
+            'currency': payment.currency,
+            'status': payment.status
         }
     })
