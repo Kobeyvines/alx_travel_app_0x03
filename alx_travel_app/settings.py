@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'django_celery_results',
+    'drf_yasg',  # Swagger documentation
     'alx_travel_app.listings.apps.ListingsConfig',
 ]
 
@@ -129,3 +130,26 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # Chapa Payment Configuration
 CHAPA_SECRET_KEY = os.getenv('CHAPA_SECRET_KEY', '')
 CHAPA_API_URL = os.getenv('CHAPA_API_URL', 'https://api.chapa.co/v1')
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+}
+
+# Swagger settings
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'basic': {
+            'type': 'basic'
+        }
+    },
+    'USE_SESSION_AUTH': True,
+    'JSON_EDITOR': True,
+}
