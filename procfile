@@ -1,2 +1,2 @@
-web: gunicorn alx_backend_security.wsgi:application --log-file -
-worker: celery -A alx_backend_security worker --loglevel=info
+web: gunicorn alx_travel_app.wsgi:application --log-file -
+worker: celery -A alx_travel_app worker --loglevel=info
